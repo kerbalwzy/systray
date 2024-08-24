@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package systray
@@ -202,6 +203,8 @@ type winTray struct {
 
 	wmSystrayMessage,
 	wmTaskbarCreated uint32
+	//
+	onLeftButtomUp []func()
 }
 
 // Loads an image from file and shows it in tray.
@@ -241,6 +244,14 @@ func (t *winTray) setTooltip(src string) error {
 	return t.nid.modify()
 }
 
+// Set the callback function for left mouse click events
+func (t *winTray) setLButtonup(callback func()) {
+	if t.onLeftButtomUp == nil {
+		t.onLeftButtomUp = make([]func(), 0)
+	}
+	t.onLeftButtomUp = append(t.onLeftButtomUp, callback)
+}
+
 var wt winTray
 
 // WindowProc callback function that processes messages sent to a window.
@@ -277,8 +288,16 @@ func (t *winTray) wndProc(hWnd windows.Handle, message uint32, wParam, lParam ui
 		systrayExit()
 	case t.wmSystrayMessage:
 		switch lParam {
-		case WM_RBUTTONUP, WM_LBUTTONUP:
+		case WM_RBUTTONUP:
 			t.showMenu()
+		case WM_LBUTTONUP:
+			if t.onLeftButtomUp == nil {
+				t.showMenu()
+			} else {
+				for _, callback := range t.onLeftButtomUp {
+					callback()
+				}
+			}
 		}
 	case t.wmTaskbarCreated: // on explorer.exe restarts
 		t.muNID.Lock()
