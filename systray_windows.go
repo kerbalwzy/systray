@@ -203,8 +203,9 @@ type winTray struct {
 
 	wmSystrayMessage,
 	wmTaskbarCreated uint32
-	//
-	onLeftButtomUp []func()
+	// tray icon click event callback functions
+	onLButtomUpCallbacks []func()
+	onRButtomUpCallbacks []func()
 }
 
 // Loads an image from file and shows it in tray.
@@ -244,12 +245,14 @@ func (t *winTray) setTooltip(src string) error {
 	return t.nid.modify()
 }
 
-// Set the callback function for left mouse click events
-func (t *winTray) setLButtonup(callback func()) {
-	if t.onLeftButtomUp == nil {
-		t.onLeftButtomUp = make([]func(), 0)
-	}
-	t.onLeftButtomUp = append(t.onLeftButtomUp, callback)
+// Set the callback function for `WM_LBUTTONUP`
+func (t *winTray) onLButtonUp(callback func()) {
+	t.onLButtomUpCallbacks = append(t.onLButtomUpCallbacks, callback)
+}
+
+// Set the callback function for `WM_RBUTTONUP`
+func (t *winTray) onRButtonUp(callback func()) {
+	t.onRButtomUpCallbacks = append(t.onRButtomUpCallbacks, callback)
 }
 
 var wt winTray
@@ -288,15 +291,18 @@ func (t *winTray) wndProc(hWnd windows.Handle, message uint32, wParam, lParam ui
 		systrayExit()
 	case t.wmSystrayMessage:
 		switch lParam {
-		case WM_RBUTTONUP:
-			t.showMenu()
 		case WM_LBUTTONUP:
-			if t.onLeftButtomUp == nil {
+			if len(t.onLButtomUpCallbacks) == 0 {
 				t.showMenu()
 			} else {
-				for _, callback := range t.onLeftButtomUp {
+				for _, callback := range t.onLButtomUpCallbacks {
 					callback()
 				}
+			}
+		case WM_RBUTTONUP:
+			t.showMenu()
+			for _, callback := range t.onRButtomUpCallbacks {
+				callback()
 			}
 		}
 	case t.wmTaskbarCreated: // on explorer.exe restarts

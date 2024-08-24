@@ -111,9 +111,16 @@ func Quit() {
 	quitOnce.Do(quit)
 }
 
-// Set the callback function for left mouse click events
-func OnLButtomup(callbake func()) {
-	wt.setLButtonup(callbake)
+// Set the left mouse click event callback for the tray icon, which can be called repeatedly.
+// The callback function is executed according to the first in, first out rule
+func OnLButtomUp(callbake func()) {
+	wt.onLButtonUp(callbake)
+}
+
+// Set the left mouse click event callback for the tray icon, which can be called repeatedly.
+// The callback function is executed according to the first in, first out rule
+func OnRButtomUp(callbake func()) {
+	wt.onRButtonUp(callbake)
 }
 
 // AddMenuItem adds a menu item with the designated title and tooltip.
